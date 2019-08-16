@@ -34,4 +34,6 @@ cd ..
 cp uClibc-0.9.30.2_patch/* buildroot-2010.02-rc1/toolchain/uClibc/
 cp gcc_4.3.4_patch/* buildroot-2010.02-rc1/toolchain/gcc/4.3.4/
 cp .config buildroot-2010.02-rc1/
+cd buildroot-2010.02-rc1-patch/
+./buildroot.patch.sh
 
