@@ -12,6 +12,8 @@ apt-get install -y bison flex gettext
 apt-get install -y g++
 apt-get install -y libncurses5-dev
 apt-get install -y patch
+apt-get install -y cpio
+apt-get install -y lzma
 
 wget http://ftp.gnu.org/gnu/texinfo/texinfo-4.13.tar.gz
 gzip -dc < texinfo-4.13.tar.gz | tar -xf -
@@ -24,6 +26,7 @@ cd ..
 cd buildroot-2010.02-rc1
 mkdir dl
 cd dl
+wget https://launchpad.net/genromfs/main/0.5.2/+download/genromfs-0.5.2.tar.gz
 wget http://ftp.gwdg.de/pub/linux/sources.redhat.com/binutils/releases/binutils-2.20.tar.bz2
 wget https://www.nektar.info/thirdparty/zlib-1.2.3.tar.bz2
 wget http://sources.buildroot.net/module-init-tools-3.2.2.tar.bz2
