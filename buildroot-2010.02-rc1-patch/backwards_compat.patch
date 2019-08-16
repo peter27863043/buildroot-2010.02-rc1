@@ -1,0 +1,9 @@
+--- module-init-tools-3.2.2.orig/backwards_compat.c	2019-05-31 03:53:45.032000000 +0000
++++ module-init-tools-3.2.2/backwards_compat.c	2019-05-31 03:54:46.284000000 +0000
+@@ -1,5 +1,6 @@
+ /* Simple backwards compat code to exec old version */
+ 
++#define CONFIG_NO_BACKWARDS_COMPAT 1
+ #ifndef CONFIG_NO_BACKWARDS_COMPAT
+ 
+ #include <sys/types.h>

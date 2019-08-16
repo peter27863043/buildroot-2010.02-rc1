@@ -1,0 +1,9 @@
+--- makedevs-host.orig/makedevs.c	2019-05-31 08:21:52.612000000 +0000
++++ makedevs-host/makedevs.c	2019-05-31 08:22:57.484000000 +0000
+@@ -531,5 +531,5 @@
+ 	if (system("/bin/sync"))
+ 		bb_error_msg("sync failed, continuing anyway");
+ 
+-	return 0;
++	return ret;
+ }
