@@ -1,0 +1,78 @@
+--- gcc-4.3.4-orig/gcc/config/mips/mips.md	2019-07-24 06:40:58.517000000 +0000
++++ gcc-4.3.4/gcc/config/mips/mips.md	2019-07-24 06:46:53.937000000 +0000
+@@ -3135,7 +3135,7 @@
+ 	(unspec:GPR [(match_operand:BLK 1 "memory_operand" "m")
+ 		     (match_operand:QI 2 "memory_operand" "m")]
+ 		    UNSPEC_LOAD_LEFT))]
+-  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[1])"
++  "!TARGET_MIPS16 && !TARGET_LEXRA && mips_mem_fits_mode_p (<MODE>mode, operands[1])"
+   "<load>l\t%0,%2"
+   [(set_attr "type" "load")
+    (set_attr "mode" "<MODE>")])
+@@ -3146,7 +3146,7 @@
+ 		     (match_operand:QI 2 "memory_operand" "m")
+ 		     (match_operand:GPR 3 "register_operand" "0")]
+ 		    UNSPEC_LOAD_RIGHT))]
+-  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[1])"
++  "!TARGET_MIPS16 && !TARGET_LEXRA && mips_mem_fits_mode_p (<MODE>mode, operands[1])"
+   "<load>r\t%0,%2"
+   [(set_attr "type" "load")
+    (set_attr "mode" "<MODE>")])
+@@ -3156,7 +3156,7 @@
+ 	(unspec:BLK [(match_operand:GPR 1 "reg_or_0_operand" "dJ")
+ 		     (match_operand:QI 2 "memory_operand" "m")]
+ 		    UNSPEC_STORE_LEFT))]
+-  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[0])"
++  "!TARGET_MIPS16 && !TARGET_LEXRA && mips_mem_fits_mode_p (<MODE>mode, operands[0])"
+   "<store>l\t%z1,%2"
+   [(set_attr "type" "store")
+    (set_attr "mode" "<MODE>")])
+@@ -3167,7 +3167,7 @@
+ 		     (match_operand:QI 2 "memory_operand" "m")
+ 		     (match_dup 0)]
+ 		    UNSPEC_STORE_RIGHT))]
+-  "!TARGET_MIPS16 && mips_mem_fits_mode_p (<MODE>mode, operands[0])"
++  "!TARGET_MIPS16 && !TARGET_LEXRA && mips_mem_fits_mode_p (<MODE>mode, operands[0])"
+   "<store>r\t%z1,%2"
+   [(set_attr "type" "store")
+    (set_attr "mode" "<MODE>")])
+--- gcc-4.3.4-orig/gcc/config/mips/mips.h	2019-07-24 07:53:01.749000000 +0000
++++ gcc-4.3.4/gcc/config/mips/mips.h	2019-07-24 07:50:07.237000000 +0000
+@@ -87,6 +87,8 @@
+   unsigned short memory_latency;
+ };
+ 
++#define TARGET_LEXRA 1
++
+ /* Which ABI to use.  ABI_32 (original 32, or o32), ABI_N32 (n32),
+    ABI_64 (n64) are all defined by SGI.  ABI_O64 is o32 extended
+    to work on a 64-bit machine.  */
+--- gcc-4.3.4-orig/gcc/config/mips/mips.c	2019-08-13 07:38:48.001979792 +0000
++++ gcc-4.3.4/gcc/config/mips/mips.c	2009-03-02 20:42:24.000000000 +0000
+@@ -5704,6 +5704,8 @@
+   if (MEM_ALIGN (src) == BITS_PER_WORD / 2
+       && MEM_ALIGN (dest) == BITS_PER_WORD / 2)
+     bits = BITS_PER_WORD / 2;
++  else if (TARGET_LEXRA)
++    bits = MIN (MEM_ALIGN (src), MEM_ALIGN (dest));
+   else
+     bits = BITS_PER_WORD;
+ 
+@@ -5964,6 +5966,8 @@
+     }
+   else
+     {
++      if (TARGET_LEXRA)
++        return false;
+       emit_insn (gen_mov_lwl (temp, src, left));
+       emit_insn (gen_mov_lwr (dest, copy_rtx (src), right, temp));
+     }
+@@ -5999,6 +6003,8 @@
+     }
+   else
+     {
++      if (TARGET_LEXRA)
++        return false;
+       emit_insn (gen_mov_swl (dest, src, left));
+       emit_insn (gen_mov_swr (copy_rtx (dest), copy_rtx (src), right));
+     }
