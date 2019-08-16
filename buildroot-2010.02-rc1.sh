@@ -30,6 +30,8 @@ wget https://launchpad.net/genext2fs/main/1.4/+download/genext2fs-1.4.tar.gz
 wget http://repository.timesys.com/buildsources/f/fakeroot/fakeroot-1.9.5/fakeroot-1.9.5.tar.gz
 cp fakeroot-1.9.5.tar.gz fakeroot_1.9.5.tar.gz
 cd ..
-
-
+cd ..
+cp uClibc-0.9.30.2_patch/* buildroot-2010.02-rc1/toolchain/uClibc/
+cp gcc_4.3.4_patch/* buildroot-2010.02-rc1/toolchain/gcc/4.3.4/
+cp .config buildroot-2010.02-rc1/
 
