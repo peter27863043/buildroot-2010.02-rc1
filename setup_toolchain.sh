@@ -1,3 +1,17 @@
+if [ !-d "../ip218_release/opt/acrospeed/user" ]
+then
+	echo "opt/acrospeed/user dosen't  exists!"
+	mkdir ../ip218_release/opt/acrospeed/user
+fi
+if [ !-d "../ip218_release/svn.material/lib" ]
+then
+	mkdir ip218_release/svn.material/lib
+	cp ip218_release/svn.material/uclibc.tgz ip218_release/svn.material/lib/
+	cd ip218_release/svn.material/lib
+	tar -xzvf uclibc.tgz
+	cd ../../../
+fi
+
 echo "------------------------"
 echo " copy toolchain "
 echo "------------------------"
