@@ -52,3 +52,16 @@ echo "----------------------------"
 cd ../../
 rm build/initramfs/lib/*
 cp -r svn.material/lib/lib/* build/initramfs/lib
+cd ..
+echo "----------------------------"
+echo " change ip218 setting "
+echo "----------------------------"
+cp -v ip218_patch/bash.uboot       ip218_release/env/
+cp -v ip218_patch/bash.linux       ip218_release/env/
+cp -v ip218_patch/Makefile         ip218_release/svn.subMake/
+cp -v ip218_patch/Makefile.rootfs  ip218_release/svn.subMake/
+cp -v ip218_patch/config.mk        ip218_release/src/u-boot-2009.08
+cp -v ip218_patch/Makefile_linux   ip218_release/src/linux/Makefile
+cp -v ip218_patch/Makefile_busybox ip218_release/src/busybox-1.23.2/Makefile
+
+

@@ -1,0 +1,1145 @@
+#
+# Copyright (C) 2012 ICPlus Corp.
+#
+# This program is the confidential and proprietary property of IC Plus 
+# Corp. and the possession or use of this file requires a witten license 
+# from ICPlus Corp.
+#
+# Modified Date : 105.08.05 -001 - du images
+#
+########################################################################################
+## user default setting
+########################################################################################
+
+# setting for UBOOT command (necessary) 
+F_IPV4_ADDR		?=
+F_NETMASK		?=255.255.255.0
+
+# setting for UBOOT command (optional) 
+#F_TFTP_SERVER_IP	?=$(shell ifconfig | grep "inet addr:" | grep 192.168 | sed -e "s/^.*inet addr://; s/ .*$$//;")
+#F_TFTP_SERVER_IP	?=$(shell ifconfig | grep -m 1 "inet addr:" | sed -e "s/^.*inet addr://; s/ .*$$//;")
+F_TFTP_SERVER_IP	?=192.168.2.1
+F_WHO_AM_I		?=$(shell whoami)
+
+# library selection (optional as "uclibc" or "glibc")
+F_LIBC			?=uclibc
+
+# compression for cpio (optional as "gzip" or "lzma")
+F_CPIO_ZIP_METHOD	?=gzip
+
+# make with verbose info, 1=enable, 0=disable
+F_BB_VERBOSE		?=1
+
+# copy only the .ko file (1) or full /lib/modules (0)
+F_MODULES_ONLY_KO_FILE	?=0
+
+# cflags for busybox build
+F_BB_EXTRA_CFLAGS	?=
+
+# test only, wdt disable 
+FOR_TEST_ONLY	?=0
+
+########################################################################################
+## project setting
+########################################################################################
+
+F_BOARD_NAME            :=helios
+
+ifeq (,)
+F_BB_SRC_NAME           :=busybox-1.23.2
+else
+F_BB_SRC_NAME           :=busybox-1.20.2
+endif
+
+########################################################################################
+## default setting
+########################################################################################
+
+SUBMAKE_EXT		+= F
+
+ifneq ($(F_LIBC),glibc) 
+F_LIBC			=uclibc
+endif
+
+ifneq ($(F_CPIO_ZIP_METHOD),lzma) 
+F_CPIO_ZIP_METHOD	=gzip
+endif
+
+ifneq ($(F_BB_VERBOSE),1) 
+F_BB_VERBOSE		=0
+endif
+
+ifneq ($(F_MODULES_ONLY_KO_FILE),1) 
+F_MODULES_ONLY_KO_FILE	=0
+endif
+
+ifeq ($(F_LIBC),glibc) 
+	F_BB_CROSS_COMPILE_PREFIX	?=
+	F_BB_EXTRA_CFLAGS		?=
+endif
+
+ifeq ($(F_LIBC),uclibc) 
+	F_BB_CROSS_COMPILE_PREFIX	?=mips-linux-uclibc-
+	#F_BB_EXTRA_CFLAGS		?=-muclibc
+	F_BB_EXTRA_CFLAGS		?=
+endif
+
+F_SET_ENV		=. $(ENV_DIR)/bashrc.linux
+F_ENV_EXEC		= $(F_SET_ENV); bash -c "$(1)"
+
+F_BUILD_DIR		?=$(PROJ_ROOT)/build
+
+## for BusyBox
+
+F_BB_DIR		?=$(PROJ_ROOT)/src/$(F_BB_SRC_NAME)
+F_BB_BUILD_DIR		?=$(F_BUILD_DIR)/$(F_BB_SRC_NAME)
+
+ifeq (,)
+F_BB_BUILD_MAKE		=make -C $(F_BB_DIR) O=$(F_BB_BUILD_DIR) V=$(F_BB_VERBOSE)
+else
+F_BB_BUILD_MAKE		=make -C $(F_BB_DIR) O=$(F_BB_BUILD_DIR)
+endif
+
+## for AP
+
+F_AP_BUILD_DIR		?=$(PROJ_ROOT)/build/ap
+
+## for Root file system
+
+F_TMP_DIR		?=$(PROJ_ROOT)/build/tmp
+
+F_INITRAMFS_BUILD_DIR	=$(F_BUILD_DIR)/initramfs
+F_INITRAMFS_FILE	=$(F_BUILD_DIR)/initramfs.gz
+
+F_J0_BUILD_DIR		=$(F_BUILD_DIR)/j0
+F_J0_IMAGE_FILE		=$(F_BUILD_DIR)/j0.img
+F_J1_BUILD_DIR		=$(F_BUILD_DIR)/j1
+F_J1_IMAGE_FILE		=$(F_BUILD_DIR)/j1.img
+
+	#simon add
+F_F0_BUILD_DIR		=$(F_BUILD_DIR)/f0
+F_F0_IMAGE_FILE		=$(F_BUILD_DIR)/f0.img
+
+F_UBOOT_IMAGE_FILE	=u-boot-rom.bin
+	
+	## for Tools
+CAT_IMAGE_Z1		=$(TOOL_DIR)/z1_tool
+CAT_IMAGE_ZA		=$(TOOL_DIR)/za_tool
+CHK_IMAGE_SZ		=$(TOOL_DIR)/chk_image
+
+## the following 5 files will be generated for UBOOT operation
+
+F_UBOOT_FILE_INIT_ENV	=$(UPLOAD_DIR)/uImage.sdk_init_env
+F_UBOOT_FILE_BOOT_TFTP	=$(UPLOAD_DIR)/uImage.sdk_boot_tftp
+F_UBOOT_FILE_BOOT_FLASH	=$(UPLOAD_DIR)/uImage.sdk_boot_flash
+F_UBOOT_FILE_BURN_BASIC	=$(UPLOAD_DIR)/uImage.sdk_burn_basic
+F_UBOOT_FILE_BURN_J0	=$(UPLOAD_DIR)/uImage.sdk_burn_j0
+F_UBOOT_FILE_BURN_J1	=$(UPLOAD_DIR)/uImage.sdk_burn_j1
+F_UBOOT_FILE_BURN_UBOOT	=$(UPLOAD_DIR)/uImage.sdk_burn_uboot
+
+
+F_CHK_SIZE				=$(UPLOAD_DIR)/check_tmp
+
+## added at 104.10.19
+
+F_UBOOT_FILE_SCRIPT	=$(UPLOAD_DIR)/uImage.sdk_script
+F_FILE_ALL_OS_NAME	=zall
+F_FILE_ALL_OS		=$(UPLOAD_DIR)/$(F_FILE_ALL_OS_NAME)
+F_FILE_OS_NAME		=z1
+F_FILE_OS		=$(UPLOAD_DIR)/$(F_FILE_OS_NAME)
+F_FILE_PAR_INFO		=$(UPLOAD_DIR)/parinfo
+F_FILE_SCRIPT		=$(UPLOAD_DIR)/uboot_cmd_script
+F_VMLINUX_FILE		=$(F_BUILD_DIR)/linux/uImage.vmlinuz
+F_UBOOT_FILE_BURN_Z1	=$(UPLOAD_DIR)/uImage.sdk_burn_z1
+F_UBOOT_FILE_BURN_ZA	=$(UPLOAD_DIR)/uImage.sdk_burn_za
+F_TEST_DIR		?=$(PROJ_ROOT)/env
+
+
+## to support 2nd flash with JFFS2 file system
+
+F_BURN_J1_ENABLED	=1
+
+
+## size/offset of flash segments, in unit of byte and in hex format without leading "0x"
+
+	# UBOOT
+F_BURN_UBOOT_OFFSET	?=0
+F_BURN_UBOOT_SIZE	?=30000
+	# UBOOT env
+F_BURN_UE_OFFSET	?=30000
+F_BURN_UE_SIZE		?=10000
+	# ExtraH image
+F_BURN_E_OFFSET		?=40000
+F_BURN_E_SIZE		?=10000
+	# initramfs
+F_BURN_F_OFFSET		?=50000
+F_BURN_F_SIZE		?=400000
+	# kernel image
+F_BURN_K_OFFSET		?=450000
+F_BURN_K_SIZE		?=200000
+	# kernel size + initramfs size + ExtraH size
+F_BURN_EKF_SIZE		?=610000
+	# J0 - no used from 105.01.28
+F_BURN_J0_OFFSET	?=650000
+F_BURN_J0_SIZE		?=50000
+	# F0 : FREE SPACE => start= F_BURN_E_OFFSET+F_BURN_EKF_SIZE, size=1~N MB
+F_BURN_F0_OFFSET	?=650000
+F_BURN_F0_SIZE		?=160000
+	# J1
+F_BURN_J1_OFFSET	?=7b0000
+F_BURN_J1_SIZE		?=50000
+	# FWUP ADDR
+F_BURN_FWUP_OFFSET	?=800000
+	# FWUP IMG SIZE => F_BURN_EKF_SIZE+F_BURN_F0_SIZE
+F_BURN_IMG_SIZE		?=770000
+
+	# CRS INFO
+F_BURN_CRS_OFFSET	?=fe0000
+F_BURN_CRS_SIZE		?=10000
+
+F_JFFS2_MIN_SIZE	?=50000
+F_IMAGE_MIN_SIZE	?=10000
+
+
+## Tftp to DRAM address
+
+	# ramFs entry, as possible from lower address
+	# if this changed, uboot's configs/helios.h must be modified too
+F_UBOOT_RAM_F_ENTRY	?=80002000
+
+	# kernel entry = K_LOAD_ADDRESS + kernel size (ref System.map)
+	# if this changed, uboot's configs/helios.h must be modified too
+F_UBOOT_RAM_K_ENTRY	?=80800000
+
+	# Temp entry
+F_UBOOT_RAM_T_ENTRY	=81500000
+
+	# z1, zall large size entry
+F_UBOOT_RAM_LF_ENTRY	=80010000
+
+#######################################################################
+## misc
+#######################################################################
+
+F_BURN_J1_ENABLED	:=$(strip $(F_BURN_J1_ENABLED))
+
+F_INLINE_UPDATE_SUBST_LIST	:=F_IPV6_ADDR F_IPV4_ADDR F_MAC_ADDR_L4B F_MAC_ADDR_H2B F_MAC_ADDR
+
+
+F_INLINE_UPDATE_DIR_LIST	=$(F_AP_BUILD_DIR) $(F_INITRAMFS_BUILD_DIR)
+
+#######################################################################
+## help
+#######################################################################
+
+.PHONY: F_help
+F_help:
+
+STEPS_F_MENUC		:= premake
+STEPS_F_DEFC		:= premake
+STEPS_F_BB_INCR		:= premake
+STEPS_F_AP_INCR		:= premake
+STEPS_F_MKFS_INCR	:= premake
+STEPS_F_MERGE_ALL	:= premake
+STEPS_F_MERGE_K		:= premake
+STEPS_F_MERGE_J0	:= premake
+STEPS_F_CMD		:= premake
+
+#STEPS_F_MENUC		+= _F_modify _F_bbox_defconfig _F_bbox_menuconfig _F_bbox _F_ap _F_mkfs _F_uboot_cmd _F_merge _F_more
+#STEPS_F_DEFC		+= _F_modify _F_bbox_defconfig                    _F_bbox _F_ap _F_mkfs _F_uboot_cmd _F_merge _F_more
+#STEPS_F_BB_INCR		+= _F_modify                                      _F_bbox _F_ap _F_mkfs _F_uboot_cmd _F_merge
+#STEPS_F_AP_INCR		+= _F_modify                                              _F_ap _F_mkfs _F_uboot_cmd _F_merge
+#STEPS_F_MKFS_INCR	+= _F_modify                                                    _F_mkfs _F_uboot_cmd _F_merge
+STEPS_F_MENUC		+= _F_modify _F_bbox_defconfig _F_bbox_menuconfig _F_bbox _F_ap _F_mkfs _F_uboot_cmd _F_merge_all _F_more
+STEPS_F_DEFC		+= _F_modify _F_bbox_defconfig                    _F_bbox _F_ap _F_mkfs _F_uboot_cmd _F_merge_all _F_more
+STEPS_F_BB_INCR		+= _F_modify                                      _F_bbox _F_ap _F_mkfs _F_uboot_cmd _F_merge_all
+STEPS_F_AP_INCR		+= _F_modify                                              _F_ap _F_mkfs _F_uboot_cmd _F_merge_all
+STEPS_F_MKFS_INCR	+= _F_modify                                                    _F_mkfs _F_uboot_cmd _F_merge_all
+STEPS_F_MERGE_ALL	+= _F_merge_all
+STEPS_F_MERGE_K		+= _F_merge_k
+STEPS_F_MERGE_J0	+= _F_merge_j0
+STEPS_F_CMD		+= _F_uboot_cmd
+
+.PHONY: _F_check_setup
+_F_check_setup:
+	$(foreach V,F_IPV4_ADDR F_MAC_ADDR F_TFTP_SERVER_IP F_NETMASK, \
+		$(if $($(V)),,echo "Error: $(V) must all be specified"; exit -1;))
+
+F_help:
+	@echo "\t########## root FS ##########"
+	@$(call WORK_FN_HELP_1,"F_clean",    "clean all source and build")
+	@$(call WORK_FN_HELP_1,"F_clean_fs", "only remove $(F_INITRAMFS_BUILD_DIR)")
+	@$(call WORK_FN_HELP_1,"F_clean_bb", "only remove $(F_BB_BUILD_DIR)")
+	@$(call WORK_FN_HELP_1,"F_defc",     "run all steps with default configuration")
+	@$(call WORK_FN_HELP_1,"F_menuc",    "run all steps with menu configuration")
+	@$(call WORK_FN_HELP_1,"F_bb_incr",  "incremental run BBOX & AP & MKFS")
+	@$(call WORK_FN_HELP_1,"F_ap_incr",  "incremental run AP & MKFS")
+	@$(call WORK_FN_HELP_1,"F_mkfs_incr","incremental run MKFS")
+	@$(call WORK_FN_HELP_1,"F_merge_all","merge all images include uboot to file zall")
+	@$(call WORK_FN_HELP_1,"F_merge_k","merge kernel & initramfs images to file z1")
+	@$(call WORK_FN_HELP_1,"F_merge_j0","merge kernel & initramfs & J0 images to file z1")
+	@$(call WORK_FN_HELP_1,"F_cmd","create cmd script only")
+
+.PHONY: F_defc
+F_defc:
+	@make _F_check_setup
+	echo > $(LOG)
+	make $(STEPS_F_DEFC) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: F_menuc
+F_menuc:
+	@make _F_check_setup
+	echo > $(LOG)
+	@# because _F_bbox_menuconfig can not be redirected to $(LOG)
+ifeq (,)
+	$(foreach T,$(STEPS_F_MENUC),\
+		$(if $(subst _F_bbox_menuconfig,,$(T)), \
+			make $(T) 2>&1 | tee -a $(LOG) ; \
+		, \
+			echo "####" >> $(LOG); \
+			echo "#### _F_bbox_menuconfig" >> $(LOG); \
+			echo "####" >> $(LOG); \
+			make $(T) ; \
+			$(call WORK_shellCmd_prepareDir,$(MODIFY_DIR_1st)/src/$(F_BB_SRC_NAME)); \
+			cp $(F_BB_BUILD_DIR)/.config $(F_BB_BUILD_DIR)/$(F_BOARD_NAME)_defconfig >> $(LOG) ; \
+			if [ ! -d $(MODIFY_DIR_1st)/src/$(F_BB_SRC_NAME)/configs/ ] ; then mkdir -p $(MODIFY_DIR_1st)/src/$(F_BB_SRC_NAME)/configs/ ; fi ; \
+			mv $(F_BB_BUILD_DIR)/$(F_BOARD_NAME)_defconfig $(MODIFY_DIR_1st)/src/$(F_BB_SRC_NAME)/configs/ >> $(LOG) ; \
+		) \
+	  )
+else
+	@$(foreach T,$(STEPS_F_MENUC),\
+		$(if $(subst _F_bbox_menuconfig,,$(T)), \
+			make $(T) 2>&1 | tee -a $(LOG) \
+		, \
+			make $(T)) ; \
+		)
+endif
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: F_bb_incr
+F_bb_incr:
+	@make _F_check_setup
+	make $(STEPS_F_BB_INCR) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: F_ap_incr
+F_ap_incr:
+	@make _F_check_setup
+	make $(STEPS_F_AP_INCR) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: F_mkfs_incr
+F_mkfs_incr:
+	@make _F_check_setup
+	make $(STEPS_F_MKFS_INCR) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: F_merge_all
+F_merge_all:
+	@make _F_check_setup
+	make $(STEPS_F_MERGE_ALL) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+	
+.PHONY: F_merge_k
+F_merge_k:
+	@make _F_check_setup
+	make $(STEPS_F_MERGE_K) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: F_merge_j0
+F_merge_j0:
+	@make _F_check_setup
+	make $(STEPS_F_MERGE_J0) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: F_cmd
+F_cmd:
+	@make _F_check_setup
+	make $(STEPS_F_CMD) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+#######################################################################
+## setup directories
+#######################################################################
+
+F_PREPARE_J0_SUBDIR     = \
+	usr/bin etc
+
+.PHONY: _F_prepare
+_F_prepare:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	if [ ! -d gen.modify ]; then \
+		mkdir -p gen.modify; \
+	fi
+	if [ ! -d $(F_INITRAMFS_BUILD_DIR) ]; then \
+		mkdir -p $(F_INITRAMFS_BUILD_DIR) ; \
+	fi
+	$(foreach D,$(F_PREPARE_J0_SUBDIR), \
+		if [ ! -d $(F_J0_BUILD_DIR)/$(D) ]; then \
+			mkdir -p $(F_J0_BUILD_DIR)/$(D) ; \
+		fi; )
+	mkdir -p $(F_J1_BUILD_DIR)
+	@make _F_bb_prepare 
+	@make _F_ap_prepare 
+	if [ ! -d $(F_INITRAMFS_BUILD_DIR) ]; then \
+		mkdir -p $(F_INITRAMFS_BUILD_DIR) ; \
+	fi
+	if [ ! -d $(UPLOAD_DIR) ]; then \
+		mkdir -p $(UPLOAD_DIR); \
+	fi
+
+.PHONY: _F_bb_prepare
+_F_bb_prepare:
+	# for busy box
+	if [ ! -d $(F_BB_DIR) ]; then \
+		mkdir -p $(dir $(F_BB_DIR)); \
+		cd $(dir $(F_BB_DIR)); \
+		tar xvfj $(F_BB_SRC_FILE); \
+	fi
+	if [ ! -d $(F_BB_BUILD_DIR) ]; then \
+		mkdir -p $(F_BB_BUILD_DIR); \
+	fi
+
+F_CALL_UNTAR_PKG	=\
+
+.PHONY: _F_ap_prepare
+_F_ap_prepare:
+	# for ap
+	if [ ! -d $(F_AP_BUILD_DIR) ]; then \
+		mkdir -p $(F_AP_BUILD_DIR); \
+	fi
+	cd $(F_AP_BUILD_DIR); \
+		$(F_AP_SRC_PREPARE)
+
+#######################################################################
+## BBox config
+#######################################################################
+
+F_BB_MENUC_CFG_FILE_LOCATION ?=gen.modify/src/$(F_BB_SRC_NAME)/configs
+
+F_BB_CFG_FILE	= $(F_BB_BUILD_DIR)/.config
+
+.PHONY: _F_bbox_defconfig
+_F_bbox_defconfig:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	$(call F_ENV_EXEC, $(F_BB_BUILD_MAKE) helios_defconfig clean)
+	make F_post_cfg
+
+## _F_bbox_menuconfig can not be redirected
+.PHONY: _F_bbox_menuconfig
+_F_bbox_menuconfig:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	$(call F_ENV_EXEC, $(F_BB_BUILD_MAKE) menuconfig clean)
+	make F_post_cfg
+	# copy .config to gen.modify/
+	if [ ! -d $(F_BB_MENUC_CFG_FILE_LOCATION) ]; then \
+		mkdir -p $(F_BB_MENUC_CFG_FILE_LOCATION) ]; \
+	fi
+	if [ -f $(F_BB_MENUC_CFG_FILE_LOCATION)/$(F_BOARD_NAME)_defconfig ]; then \
+		mv $(F_BB_MENUC_CFG_FILE_LOCATION)/$(F_BOARD_NAME)_defconfig $(F_BB_MENUC_CFG_FILE_LOCATION)/$(F_BOARD_NAME)_defconfig.$(WORK_TIME_TAG); \
+	fi
+	cp $(F_BB_CFG_FILE) $(F_BB_MENUC_CFG_FILE_LOCATION)/$(F_BOARD_NAME)_defconfig
+
+.PHONY: F_post_cfg
+F_post_cfg:
+	sed 's/^CONFIG_CROSS_COMPILER_PREFIX=".*"/CONFIG_CROSS_COMPILER_PREFIX="$(F_BB_CROSS_COMPILE_PREFIX)"/' -i $(F_BB_CFG_FILE); \
+	sed 's/^CONFIG_EXTRA_CFLAGS=".*"/CONFIG_EXTRA_CFLAGS="$(F_BB_EXTRA_CFLAGS)"/' -i $(F_BB_CFG_FILE)
+
+#######################################################################
+## BBox build
+#######################################################################
+
+.PHONY: _F_bbox
+_F_bbox:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	#make F_post_cfg
+	$(call F_ENV_EXEC, $(F_BB_BUILD_MAKE))
+	$(call F_ENV_EXEC, $(F_BB_BUILD_MAKE) install)
+
+#######################################################################
+## BBox build
+#######################################################################
+
+.PHONY: _F_ap
+_F_ap:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	if [ -f $(F_AP_BUILD_DIR)/Makefile ]; then \
+		$(call F_ENV_EXEC, make -C $(F_AP_BUILD_DIR) PROJ_ROOT=$(PROJ_ROOT) O=$(F_INITRAMFS_BUILD_DIR) J0=$(F_J0_BUILD_DIR) J1=$(F_J1_BUILD_DIR) M=$(MATERIAL_DIR) U=$(UPLOAD_DIR) RELEASE_TYPE=$(RELEASE_TYPE)); \
+	fi
+
+.PHONY: _F_ap_clean
+_F_ap_clean:
+	if [ -f $(F_AP_BUILD_DIR)/Makefile ]; then \
+		make -C $(F_AP_BUILD_DIR) PROJ_ROOT=$(PROJ_ROOT) O=$(F_INITRAMFS_BUILD_DIR) J0=$(F_J0_BUILD_DIR) J1=$(F_J1_BUILD_DIR) M=$(MATERIAL_DIR) U=$(UPLOAD_DIR) clean; \
+	fi
+	find build/ap -name "*.o" | xargs rm -rf
+	find build/ap -name "touch.*" | xargs rm -rf
+
+#######################################################################
+## generate initramfs.gz
+#######################################################################
+
+.PHONY: _F_mkfs
+_F_mkfs:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@$(call F_ENV_EXEC, make _F_mkfs_sub)	
+	#@printf "size of $^ = 0x%x = %d\n" $(call WORK_FN_FILE_SIZE,$(F_INITRAMFS_FILE)) $(call WORK_FN_FILE_SIZE,$(F_INITRAMFS_FILE))
+		
+	$(CHK_IMAGE_SZ) $(F_INITRAMFS_FILE) $(F_BURN_F_SIZE) $(F_IMAGE_MIN_SIZE) $(F_CHK_SIZE)
+	if [ -f $(F_CHK_SIZE) ]; then \
+		rm $(F_CHK_SIZE); \
+		echo "Pass Checking"; \
+		cp $(F_INITRAMFS_FILE) $(UPLOAD_DIR); \
+		printf "size of $(F_INITRAMFS_FILE) = 0x%x = %d\n" $(call WORK_FN_FILE_SIZE,$(F_INITRAMFS_FILE)) $(call WORK_FN_FILE_SIZE,$(F_INITRAMFS_FILE)); \
+	fi
+	
+
+.PHONY: _F_mkfs_sub
+_F_mkfs_sub:
+	make _F_mkfs_sub_bb
+	make _F_mkfs_sub_lib
+	make _F_mkfs_sub_module
+	make _F_mkfs_sub_generate
+	make _F_mkfs_j0
+	make _F_mkfs_j1
+	make _F_mkfs_f0
+	
+.PHONY: _F_mkfs_sub_bb
+_F_mkfs_sub_bb:
+	mkdir -p $(F_TMP_DIR)
+	cd $(F_BB_BUILD_DIR)/_install; \
+		tar cvfz $(F_TMP_DIR)/$@.tgz .
+	cd $(F_INITRAMFS_BUILD_DIR); \
+		tar xvfz $(F_TMP_DIR)/$@.tgz
+	rm -rf $(F_TMP_DIR)
+	# for rcS
+	cd $(F_INITRAMFS_BUILD_DIR); \
+		if [ -f init ]; then rm -f init; fi; \
+		ln -s bin/busybox init; \
+
+.PHONY: _F_mkfs_sub_lib
+_F_mkfs_sub_lib:
+	mkdir -p $(F_TMP_DIR)
+	cd $(F_INITRAMFS_BUILD_DIR); \
+		tar xvfz $(MATERIAL_DIR)/$(F_LIBC).tgz
+	rm -rf $(F_TMP_DIR)
+
+F_MODULE_DIR	=$(F_INITRAMFS_BUILD_DIR)/lib/modules
+.PHONY: _F_mkfs_sub_module
+_F_mkfs_sub_module:
+	mkdir -p $(F_MODULE_DIR)
+	rm -rf $(F_MODULE_DIR)/*
+ifeq ($(F_MODULES_ONLY_KO_FILE),1)
+	# choose this will only copy .ko files
+	-for f in `find $(K_MODULE_DIR) -name "*.ko"`; do \
+		cp $$f $(F_MODULE_DIR); \
+	done
+else
+	# choose this will copy all generated module files, such as modules.order, modules.dep, modules.pcimap ...
+	-cp -rf $(K_MODULE_DIR)/lib/modules/* $(F_MODULE_DIR) 
+	-rm $(F_MODULE_DIR)/*/source;
+	-rm $(F_MODULE_DIR)/*/build;
+endif
+
+.PHONY: _F_mkfs_sub_generate
+_F_mkfs_sub_generate:
+	echo "Hello, $(F_WHO_AM_I) ! Release tag is $(RELEASE_TAG):$(WORK_FN_TIME_TAG)" > $(F_INITRAMFS_BUILD_DIR)/etc/HelloMessage.txt
+	#
+	cd $(F_INITRAMFS_BUILD_DIR); \
+		find . | cpio -H newc -o > $(F_BUILD_DIR)/initramfs.cpio
+	cat $(F_BUILD_DIR)/initramfs.cpio | $(F_CPIO_ZIP_METHOD) > $(F_INITRAMFS_FILE)
+	rm -f $(F_BUILD_DIR)/initramfs.cpio
+
+	
+#######################################################################
+## Clean up the build directory and all log.*
+#######################################################################
+
+.PHONY: F_clean
+F_clean:
+	make preclean
+	make _F_img_clean
+	make _F_ap_clean
+	make F_clean_fs F_clean_bb
+	rm -f $(F_INITRAMFS_FILE)
+	rm -f log.*.F_*
+	rm -f log.F_*
+
+.PHONY: F_clean_fs
+F_clean_fs:
+
+.PHONY: F_clean_bb
+F_clean_bb:
+	find $(F_BB_BUILD_DIR) -name "*.o" | xargs rm -f
+	
+#######################################################################
+## compare different files and copy to the destionation address
+#######################################################################
+
+# For _F_modify, ytPatchDir can not duplicate the "rwx" attribute to the new file.
+# However, "tar" can do this. 
+# The side-effect of "tar" is that it will overwrite files that the tar ball has.  
+# This side-effect is not suitable for K_modify, but is suitable for _F_modify because
+#   _F_mkfs will not be loaded more.
+#
+.PHONY: _F_modify
+_F_modify:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	make _F_inline_update
+
+.PHONY: _F_inline_update
+_F_inline_update:
+	@$(foreach F,$(shell grep -l -R INLINE_UPDATE $(foreach D,$(F_INLINE_UPDATE_DIR_LIST), $(D)/*) | grep -v svn-base | grep -v ".swp"), \
+		echo "inline update $(F) ..."; \
+		cp $(F) /tmp/ip218_tmp_file; \
+		rm -f $(F); \
+		sed "$(foreach V,$(F_INLINE_UPDATE_SUBST_LIST),s/IP218_BUILD_INLINE_UPDATE__$(V)/$($(V))/;)" < /tmp/ip218_tmp_file > $(F); \
+		chmod +x $(F); \
+		rm -f /tmp/ip218_tmp_file; )
+
+
+#######################################################################
+## block:
+##	_F_mkfs_j0
+##	_F_mkfs_j1
+#######################################################################
+
+.PHONY: _F_mkfs_j0
+_F_mkfs_j0:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	if [ ! -d $(F_J0_BUILD_DIR) ]; then \
+		mkdir -p $(F_J0_BUILD_DIR); \
+	fi
+	echo "J0:"> $(F_J0_BUILD_DIR)/hello.txt
+	date >> $(F_J0_BUILD_DIR)/hello.txt
+	mkfs.jffs2 -b -r $(F_J0_BUILD_DIR) -o $(F_J0_IMAGE_FILE) -e 0x10000 -s 0x200 --pad=0x$(F_BURN_J0_SIZE) -n
+
+	$(CHK_IMAGE_SZ) $(F_J0_IMAGE_FILE) $(F_BURN_J0_SIZE) $(F_JFFS2_MIN_SIZE) $(F_CHK_SIZE)
+	if [ -f $(F_CHK_SIZE) ]; then \
+		rm $(F_CHK_SIZE); \
+		echo "Pass Checking"; \
+		cp $(F_J0_IMAGE_FILE) $(UPLOAD_DIR); \
+		printf "size of $(F_J0_IMAGE_FILE) = 0x%x = %d\n" $(call WORK_FN_FILE_SIZE,$(F_J0_IMAGE_FILE)) $(call WORK_FN_FILE_SIZE,$(F_J0_IMAGE_FILE)); \
+	fi
+
+
+.PHONY: _F_mkfs_j1
+_F_mkfs_j1:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+ifneq ($(F_BURN_J1_ENABLED),0)
+	if [ ! -d $(F_J1_BUILD_DIR) ]; then \
+		mkdir -p $(F_J1_BUILD_DIR); \
+	fi
+	echo "J1:"> $(F_J1_BUILD_DIR)/hello.txt
+	date >> $(F_J1_BUILD_DIR)/hello.txt
+	mkfs.jffs2 -b -r $(F_J1_BUILD_DIR) -o $(F_J1_IMAGE_FILE) -e 0x10000 -s 0x200 --pad=0x$(F_BURN_J1_SIZE) -n
+	
+	$(CHK_IMAGE_SZ) $(F_J1_IMAGE_FILE) $(F_BURN_J1_SIZE) $(F_JFFS2_MIN_SIZE) $(F_CHK_SIZE)
+	if [ -f $(F_CHK_SIZE) ]; then \
+		rm $(F_CHK_SIZE); \
+		echo "Pass Checking"; \
+		cp $(F_J1_IMAGE_FILE) $(UPLOAD_DIR); \
+		printf "size of $(F_J1_IMAGE_FILE) = 0x%x = %d\n" $(call WORK_FN_FILE_SIZE,$(F_J1_IMAGE_FILE)) $(call WORK_FN_FILE_SIZE,$(F_J1_IMAGE_FILE)); \
+	fi
+endif
+
+.PHONY: _F_mkfs_f0
+_F_mkfs_f0:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+
+	if [ ! -d $(F_F0_BUILD_DIR) ]; then \
+		mkdir -p $(F_F0_BUILD_DIR); \
+	fi
+	echo "F0:"> $(F_F0_BUILD_DIR)/hello.txt
+	date >> $(F_F0_BUILD_DIR)/hello.txt
+	mkfs.jffs2 -b -r $(F_F0_BUILD_DIR) -o $(F_F0_IMAGE_FILE) -e 0x10000 -s 0x200 --pad=0x$(F_BURN_F0_SIZE) -n
+	cp $(F_F0_IMAGE_FILE) $(UPLOAD_DIR)
+	@printf "size of $(F_F0_IMAGE_FILE) = 0x%x = %d\n" $(call WORK_FN_FILE_SIZE,$(F_F0_IMAGE_FILE)) $(call WORK_FN_FILE_SIZE,$(F_F0_IMAGE_FILE))
+
+
+#######################################################################
+## block:
+##	_F_uboot_cmd
+##	_F_uboot_cmd_init_env
+##	_F_uboot_cmd_boot_tftp
+##	_F_uboot_cmd_burn_basic
+##	_F_uboot_cmd_burn_j0
+##	_F_uboot_cmd_burn_j1
+##	_F_uboot_cmd_run_scr
+#######################################################################
+
+F_UBOOT_FILE_TMP	?=$(F_INITRAMFS_BUILD_DIR)/ubootcmd_tmp
+
+FN_GEN_UBOOT_SCRIPT = \
+	echo ; \
+	echo "The content of UBOOT script $(1) is :"; \
+	echo "--------------------------------- file begin"; \
+	cat $(F_UBOOT_FILE_TMP); \
+	echo "--------------------------------- file end"; \
+	echo ; \
+	$(U_BUILD_DIR)/tools/mkimage -A mips -T script -C gzip \
+		-a 0x$(F_UBOOT_RAM_T_ENTRY) -e 0x81500040 \
+		-d $(F_UBOOT_FILE_TMP) ./$(notdir $(1)); \
+	cp ./$(notdir $(1)) $(1); \
+	rm -f $(F_UBOOT_FILE_TMP) ./$(notdir $(1)); \
+	echo ; \
+
+.PHONY: _F_uboot_cmd
+_F_uboot_cmd:
+	#make _F_uboot_cmd_init_env
+	#make _F_uboot_cmd_boot_tftp
+	#make _F_uboot_cmd_burn_basic
+	#make _F_uboot_cmd_burn_j0
+	#make _F_uboot_cmd_burn_j1
+	make $(F_UBOOT_FILE_INIT_ENV)
+	make $(F_UBOOT_FILE_BOOT_TFTP)
+	make $(F_UBOOT_FILE_BURN_BASIC)
+	make $(F_UBOOT_FILE_BURN_J0)
+	make $(F_UBOOT_FILE_BURN_J1)
+	make $(F_UBOOT_FILE_BURN_UBOOT)
+	make $(F_UBOOT_FILE_BURN_Z1)
+	make $(F_UBOOT_FILE_BURN_ZA)
+	make $(F_UBOOT_FILE_SCRIPT)
+	
+__F_uboot_bootargs :=$(shell printf "setenv bootargs rd_start=0x$(F_UBOOT_RAM_F_ENTRY) rd_size=0x%x" $(call WORK_FN_FILE_SIZE,$(F_INITRAMFS_FILE)))
+
+#__F_uboot_bootargs :=$(__F_uboot_bootargs)" mtdparts=spi0.0:0x$(F_BURN_UE_SIZE)@0x$(F_BURN_UE_OFFSET)"
+__F_uboot_bootargs :=$(__F_uboot_bootargs)" mtdparts=spi0.0:"
+
+#mtd 0
+#__F_uboot_bootargs :=$(__F_uboot_bootargs)"0x$(F_BURN_EKF_SIZE)@0x$(F_BURN_E_OFFSET)"
+
+#mtd 1
+#__F_uboot_bootargs :=$(__F_uboot_bootargs)",0x$(F_BURN_F0_SIZE)@0x$(F_BURN_F0_OFFSET)"
+
+#mtd 2
+#ifneq ($(F_BURN_J1_ENABLED),0)
+#__F_uboot_bootargs :=$(__F_uboot_bootargs)",0x$(F_BURN_J1_SIZE)@0x$(F_BURN_J1_OFFSET)"
+#endif
+
+#mtd 3
+#__F_uboot_bootargs :=$(__F_uboot_bootargs)",0x$(F_BURN_CRS_SIZE)@0x$(F_BURN_CRS_OFFSET)"
+
+#__F_uboot_bootargs :=$(__F_uboot_bootargs)" cw_start=1 ethaddr=$(F_MAC_ADDR) ipaddr=$(F_IPV4_ADDR)"
+
+
+#mtd 0
+__F_uboot_bootargs :=$(__F_uboot_bootargs)"0x$(F_BURN_IMG_SIZE)@0x$(F_BURN_E_OFFSET)"
+
+#mtd 1
+__F_uboot_bootargs :=$(__F_uboot_bootargs)",0x$(F_BURN_IMG_SIZE)@0x$(F_BURN_FWUP_OFFSET)"
+
+#mtd 2
+ifneq ($(F_BURN_J1_ENABLED),0)
+__F_uboot_bootargs :=$(__F_uboot_bootargs)",0x$(F_BURN_J1_SIZE)@0x$(F_BURN_J1_OFFSET)"
+endif
+
+#mtd 3
+__F_uboot_bootargs :=$(__F_uboot_bootargs)",0x$(F_BURN_CRS_SIZE)@0x$(F_BURN_CRS_OFFSET)"
+
+__F_uboot_bootargs :=$(__F_uboot_bootargs)" cw_start=1 ethaddr=$(F_MAC_ADDR)"
+
+
+#.PHONY: _F_uboot_cmd_init_env
+#_F_uboot_cmd_init_env:
+.PHONY: $(F_UBOOT_FILE_INIT_ENV)
+$(F_UBOOT_FILE_INIT_ENV):
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_sdk_boot_flash icp f0\; icp f r $(F_BURN_K_OFFSET) $(F_BURN_K_SIZE) $(F_UBOOT_RAM_K_ENTRY)\; icp f r $(F_BURN_F_OFFSET) $(F_BURN_F_SIZE) $(F_UBOOT_RAM_F_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_boot_flash icp discm\; run sdk_sdk_boot_flash\; bootm $(F_UBOOT_RAM_K_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_boot_tftp tftp $(F_UBOOT_RAM_T_ENTRY) $(notdir $(F_UBOOT_FILE_BOOT_TFTP))\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_burn_basic tftp $(F_UBOOT_RAM_T_ENTRY) $(notdir $(F_UBOOT_FILE_BURN_BASIC))\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_burn_j0 tftp $(F_UBOOT_RAM_T_ENTRY) $(notdir $(F_UBOOT_FILE_BURN_J0))\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_burn_j1 tftp $(F_UBOOT_RAM_T_ENTRY) $(notdir $(F_UBOOT_FILE_BURN_J1))\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_burn_z1 tftp $(F_UBOOT_RAM_T_ENTRY) $(notdir $(F_UBOOT_FILE_BURN_Z1))\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_burn_za tftp $(F_UBOOT_RAM_T_ENTRY) $(notdir $(F_UBOOT_FILE_BURN_ZA))\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)											
+	@echo "setenv sdk_burn_uboot tftp $(F_UBOOT_RAM_T_ENTRY) $(notdir $(F_UBOOT_FILE_BURN_UBOOT))\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_init_env tftp $(F_UBOOT_RAM_T_ENTRY) uImage.sdk_init_env\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv sdk_script tftp $(F_UBOOT_RAM_T_ENTRY) uImage.sdk_script\; source $(F_UBOOT_RAM_T_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+ifeq ($(FOR_TEST_ONLY),1)											
+	@echo "setenv bootcmd icp wdt 0\; run sdk_boot_tftp"		>> $(F_UBOOT_FILE_TMP)
+else
+	@echo "setenv bootcmd run sdk_boot_tftp"					>> $(F_UBOOT_FILE_TMP)
+endif
+	@echo "setenv serverip " $(F_TFTP_SERVER_IP)					>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv ipaddr " $(F_IPV4_ADDR)						>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv ethaddr " $(F_MAC_ADDR)						>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv netmask " $(F_NETMASK)						>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv bootfile " $(F_FILE_OS_NAME)					>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv stdin serial"							>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv stdout serial"							>> $(F_UBOOT_FILE_TMP)
+	@echo "setenv stderr serial"							>> $(F_UBOOT_FILE_TMP)
+	@echo "saveenv "								>> $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_INIT_ENV))
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+
+#.PHONY: _F_uboot_cmd_run_scr
+#_F_uboot_cmd_run_scr:
+.PHONY: $(F_UBOOT_FILE_SCRIPT)
+$(F_UBOOT_FILE_SCRIPT):	
+	if [ ! -s $(F_FILE_SCRIPT) ]; then \
+		echo ""		>> $(F_FILE_SCRIPT); \
+		echo "icp"	>> $(F_FILE_SCRIPT); \
+		echo ""		>> $(F_FILE_SCRIPT); \
+	fi	
+	@cp $(F_FILE_SCRIPT) $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_SCRIPT))
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)	
+
+
+	
+#.PHONY: _F_uboot_cmd_boot_tftp
+#_F_uboot_cmd_boot_tftp:
+.PHONY: $(F_UBOOT_FILE_BOOT_TFTP)
+$(F_UBOOT_FILE_BOOT_TFTP):
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@echo "" 									> $(F_UBOOT_FILE_TMP)
+	@#echo "setenv bootdelay 1"							>> $(F_UBOOT_FILE_TMP)
+	@#echo "setenv p_retry 3"							>> $(F_UBOOT_FILE_TMP)
+	@#echo "setenv ethact ethaddr"							>> $(F_UBOOT_FILE_TMP)
+	@#echo "setenv netretry no"							>> $(F_UBOOT_FILE_TMP)
+	@#echo "setenv autoload no"							>> $(F_UBOOT_FILE_TMP)
+	@#echo "setenv ver IP218_01"							>> $(F_UBOOT_FILE_TMP)
+	@#echo "setenv bootfile " $(F_FILE_OS_NAME)					>> $(F_UBOOT_FILE_TMP)
+	@#echo ""									>> $(F_UBOOT_FILE_TMP)
+	@echo "$(__F_uboot_bootargs)"							>> $(F_UBOOT_FILE_TMP)
+	@echo "printenv"								>> $(F_UBOOT_FILE_TMP)
+	@echo "" 									>> $(F_UBOOT_FILE_TMP)
+ifeq ($(FOR_TEST_ONLY),1)	
+	@echo "icp wdt 0"							>> $(F_UBOOT_FILE_TMP)
+endif
+	@echo "tftp $(F_UBOOT_RAM_K_ENTRY) uImage.vmlinuz"				>> $(F_UBOOT_FILE_TMP)
+	@echo "tftp $(F_UBOOT_RAM_F_ENTRY) $(notdir $(F_INITRAMFS_FILE))" 		>> $(F_UBOOT_FILE_TMP)
+	@echo "icp discm" 		>> $(F_UBOOT_FILE_TMP)
+	@echo "bootm $(F_UBOOT_RAM_K_ENTRY)"						>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_BOOT_TFTP))
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+
+#.PHONY: _F_uboot_cmd_burn_basic
+#_F_uboot_cmd_burn_basic:
+.PHONY: $(F_UBOOT_FILE_BURN_BASIC)
+$(F_UBOOT_FILE_BURN_BASIC):
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@echo "" 									> $(F_UBOOT_FILE_TMP)
+											>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@echo "tftp $(F_UBOOT_RAM_K_ENTRY) uImage.vmlinuz"				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f0"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_K_OFFSET) $(F_BURN_K_SIZE)" 				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_K_OFFSET) $(F_BURN_K_SIZE) $(F_UBOOT_RAM_K_ENTRY)"	>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@echo "tftp $(F_UBOOT_RAM_F_ENTRY) $(notdir $(F_INITRAMFS_FILE))"		>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f0"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_F_OFFSET) $(F_BURN_F_SIZE)" 				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_F_OFFSET) $(F_BURN_F_SIZE) $(F_UBOOT_RAM_F_ENTRY)" 	>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+ifeq ($(FOR_TEST_ONLY),1)
+	@echo "setenv bootcmd icp wdt 0\; run sdk_boot_flash"					>> $(F_UBOOT_FILE_TMP)
+else
+	@echo "setenv bootcmd run sdk_boot_flash"					>> $(F_UBOOT_FILE_TMP)
+endif		
+	@echo "$(__F_uboot_bootargs)"							>> $(F_UBOOT_FILE_TMP)
+	@echo "printenv"								>> $(F_UBOOT_FILE_TMP)
+	@echo "saveenv"									>> $(F_UBOOT_FILE_TMP)
+	@echo "reset"									>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_BURN_BASIC))
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+
+#.PHONY: _F_uboot_cmd_burn_j0
+#_F_uboot_cmd_burn_j0:
+.PHONY: $(F_UBOOT_FILE_BURN_J0)
+$(F_UBOOT_FILE_BURN_J0):
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@echo "" 									> $(F_UBOOT_FILE_TMP)
+	@echo "tftp $(F_UBOOT_RAM_F_ENTRY) $(notdir $(F_J0_IMAGE_FILE))"		>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f0"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_J0_OFFSET) $(F_BURN_J0_SIZE)" 				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_J0_OFFSET) $(F_BURN_J0_SIZE) $(F_UBOOT_RAM_F_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_BURN_J0))
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+
+.PHONY: $(F_UBOOT_FILE_BURN_J1)
+$(F_UBOOT_FILE_BURN_J1):
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@echo "" 									> $(F_UBOOT_FILE_TMP)
+ifneq ($(F_BURN_J1_ENABLED),0)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@echo "tftp $(F_UBOOT_RAM_F_ENTRY) $(notdir $(F_J1_IMAGE_FILE))"		>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f0"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_J1_OFFSET) $(F_BURN_J1_SIZE)" 				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_J1_OFFSET) $(F_BURN_J1_SIZE) $(F_UBOOT_RAM_F_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_BURN_J1))
+endif
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+
+.PHONY: $(F_UBOOT_FILE_BURN_UBOOT)
+$(F_UBOOT_FILE_BURN_UBOOT):
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@echo "" 									> $(F_UBOOT_FILE_TMP)
+ifeq ($(FOR_TEST_ONLY),1)	
+	@echo "icp wdt 0"							>> $(F_UBOOT_FILE_TMP)
+endif	
+	@echo "tftp $(F_UBOOT_RAM_F_ENTRY) $(notdir $(F_UBOOT_IMAGE_FILE))"		>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f1"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_UBOOT_OFFSET) $(F_BURN_UBOOT_SIZE)" 			>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_UBOOT_OFFSET) $(F_BURN_UBOOT_SIZE) $(F_UBOOT_RAM_F_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f0"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f r $(F_BURN_UE_OFFSET) $(F_BURN_UE_SIZE) $(F_UBOOT_RAM_F_ENTRY)"	>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f1"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_UE_OFFSET) $(F_BURN_UE_SIZE)" 				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_UE_OFFSET) $(F_BURN_UE_SIZE) $(F_UBOOT_RAM_F_ENTRY)"	>> $(F_UBOOT_FILE_TMP)
+	@echo ""									>> $(F_UBOOT_FILE_TMP)
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+
+#######################################################################
+## do something more after kernel is built
+#######################################################################
+
+#CROSS_COMPILE	=mips-linux-gnu-
+CROSS_COMPILE	=mips-linux-uclibc-
+F_MORE_FLAG	=-g -S -a -D -h -l -t
+
+.PHONY: _F_more
+_F_more:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	$(call F_ENV_EXEC, \
+		${CROSS_COMPILE}objdump $(F_MORE_FLAG) $(F_BB_BUILD_DIR)/busybox > $(F_BB_BUILD_DIR)/more_busybox.text )
+
+#######################################################################
+## merge files here
+#######################################################################
+.PHONY: _F_merge_all
+_F_merge_all:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	make _F_img_clean
+	
+#usage: z1_tool from_file output_file partition_list_file Attached_size Attached/NonAttached [mode], mode is option
+#Linux, RootFs - mtd0
+	$(CAT_IMAGE_Z1) $(F_INITRAMFS_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_K_OFFSET) 4
+	$(CAT_IMAGE_Z1) $(F_VMLINUX_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_OFFSET) 4
+	
+#J0 - mtd1
+	#$(CAT_IMAGE_Z1) $(F_J0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_SIZE) 4
+	
+#F0 - mtd2
+	$(CAT_IMAGE_Z1) $(F_F0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_F0_SIZE) 4
+	
+#J1 - mtd3
+	$(CAT_IMAGE_Z1) $(F_J1_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J1_SIZE) 4
+	
+	make _F_merge_sub
+		
+#usage: za_tool output_file z1_file uboot_file mac_addr ip_addr server_ip netmask	
+	if [ -s $(UPLOAD_DIR)/$(F_UBOOT_IMAGE_FILE) ]; then \
+		$(CAT_IMAGE_ZA) $(F_FILE_ALL_OS) $(F_FILE_OS) $(UPLOAD_DIR)/$(F_UBOOT_IMAGE_FILE) $(F_MAC_ADDR) $(F_IPV4_ADDR) $(F_TFTP_SERVER_IP) $(F_NETMASK); \
+		make _F_merge_sub_za; \
+	else \
+		echo "" ; \
+		echo Warning: $(F_UBOOT_IMAGE_FILE) not found ! ; \
+		echo "         zall will not be created !" ; \
+		echo "" ; \
+	fi	
+
+
+.PHONY: _F_merge
+_F_merge:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	make _F_img_clean
+	
+#usage: z1_tool from_file output_file partition_list_file Attached_size Attached/NonAttached [mode], mode is option
+#Linux, RootFs - mtd0
+	$(CAT_IMAGE_Z1) $(F_INITRAMFS_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_K_OFFSET) 4
+	$(CAT_IMAGE_Z1) $(F_VMLINUX_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_OFFSET) 4
+	#$(CAT_IMAGE_Z1) $(F_INITRAMFS_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_OFFSET) 4
+	
+#J0 - mtd1
+	#$(CAT_IMAGE_Z1) $(F_J0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_SIZE) 4
+	
+#F0 - mtd2
+	$(CAT_IMAGE_Z1) $(F_F0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_F0_SIZE) 4
+	
+#J1 - mtd3
+	$(CAT_IMAGE_Z1) $(F_J1_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J1_SIZE) 4
+	
+	make _F_merge_sub
+
+	
+.PHONY: _F_merge_k
+_F_merge_k:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	make _F_img_clean
+	
+#Linux, RootFs - mtd0
+	$(CAT_IMAGE_Z1) $(F_INITRAMFS_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_K_OFFSET) 4
+	$(CAT_IMAGE_Z1) $(F_VMLINUX_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_OFFSET) 4
+
+#J0 - mtd1
+	#$(CAT_IMAGE_Z1) $(F_J0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) N $(F_BURN_J0_SIZE) 4
+	
+#F0 - mtd2
+	$(CAT_IMAGE_Z1) $(F_F0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) N $(F_BURN_F0_SIZE) 4
+	
+#J1 - mtd3
+	$(CAT_IMAGE_Z1) $(F_J1_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) N $(F_BURN_J1_SIZE) 4	
+	make _F_merge_sub
+
+	
+.PHONY: _F_merge_j0
+_F_merge_j0:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	make _F_img_clean
+	
+#Linux, RootFs - mtd0
+	$(CAT_IMAGE_Z1) $(F_INITRAMFS_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_K_OFFSET) 4
+	$(CAT_IMAGE_Z1) $(F_VMLINUX_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_OFFSET) 4
+	
+#J0 - mtd1
+	#$(CAT_IMAGE_Z1) $(F_J0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) A $(F_BURN_J0_SIZE) 4
+	
+#F0 - mtd2
+	$(CAT_IMAGE_Z1) $(F_F0_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) N $(F_BURN_F0_SIZE) 4
+	
+#J1 - mtd3
+	$(CAT_IMAGE_Z1) $(F_J1_IMAGE_FILE) $(F_FILE_OS) $(F_FILE_PAR_INFO) N $(F_BURN_J1_SIZE) 4
+	
+	make _F_merge_sub
+	
+	
+.PHONY: _F_merge_sub
+_F_merge_sub:	
+	make $(F_UBOOT_FILE_BURN_Z1)
+	make $(F_UBOOT_FILE_BURN_ZA)
+	
+__F_OS_filesize :=$(shell printf "%x" $(call WORK_FN_FILE_SIZE,$(F_FILE_OS)))
+__F_A_OS_filesize :=$(shell printf "%x" $(call WORK_FN_FILE_SIZE,$(F_FILE_ALL_OS)))
+	
+.PHONY: $(F_UBOOT_FILE_BURN_Z1)
+$(F_UBOOT_FILE_BURN_Z1):
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@echo "" 									> $(F_UBOOT_FILE_TMP)
+	@echo "tftp $(F_UBOOT_RAM_LF_ENTRY) $(notdir $(F_FILE_OS))"			>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f0"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_E_OFFSET) $(__F_OS_filesize)" 				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_E_OFFSET) $(__F_OS_filesize) $(F_UBOOT_RAM_LF_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)	
+ifeq ($(FOR_TEST_ONLY),1)
+	@echo "setenv bootcmd icp wdt 0\; icp op"				>> $(F_UBOOT_FILE_TMP)
+else
+	@echo "setenv bootcmd icp op"				>> $(F_UBOOT_FILE_TMP)
+endif											
+	@echo "$(__F_uboot_bootargs)"				>> $(F_UBOOT_FILE_TMP)
+	@echo "printenv"					>> $(F_UBOOT_FILE_TMP)
+	@echo "saveenv"						>> $(F_UBOOT_FILE_TMP)
+	@echo ""						>> $(F_UBOOT_FILE_TMP)
+	@echo "reset"						>> $(F_UBOOT_FILE_TMP)
+	@echo ""						>> $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_BURN_OS))
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+	
+
+.PHONY: _F_merge_sub_za
+_F_merge_sub_za:	
+	make $(F_UBOOT_FILE_BURN_ZA)
+	
+__F_A_OS_filesize :=$(shell printf "%x" $(call WORK_FN_FILE_SIZE,$(F_FILE_ALL_OS)))
+
+.PHONY: $(F_UBOOT_FILE_BURN_ZA)
+$(F_UBOOT_FILE_BURN_ZA):
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	@echo "" 									> $(F_UBOOT_FILE_TMP)
+	@echo "tftp $(F_UBOOT_RAM_LF_ENTRY) $(notdir $(F_FILE_ALL_OS))"			>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f0"									>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f e $(F_BURN_UBOOT_OFFSET) $(__F_A_OS_filesize)" 				>> $(F_UBOOT_FILE_TMP)
+	@echo "icp f w $(F_BURN_UBOOT_OFFSET) $(__F_A_OS_filesize) $(F_UBOOT_RAM_LF_ENTRY)" \
+											>> $(F_UBOOT_FILE_TMP)	
+	@echo ""						>> $(F_UBOOT_FILE_TMP)
+	@echo "run sdk_init_env"			>> $(F_UBOOT_FILE_TMP)
+ifeq ($(FOR_TEST_ONLY),1)
+	@echo "setenv bootcmd icp wdt 0\; icp op"				>> $(F_UBOOT_FILE_TMP)
+else
+	@echo "setenv bootcmd icp op"				>> $(F_UBOOT_FILE_TMP)
+endif
+	@echo "printenv"					>> $(F_UBOOT_FILE_TMP)
+	@echo "saveenv"						>> $(F_UBOOT_FILE_TMP)
+	@echo ""						>> $(F_UBOOT_FILE_TMP)
+	@echo "reset"						>> $(F_UBOOT_FILE_TMP)
+	@echo ""						>> $(F_UBOOT_FILE_TMP)
+	@#$(call FN_GEN_UBOOT_SCRIPT,$(F_UBOOT_FILE_BURN_OS))
+	@$(call FN_GEN_UBOOT_SCRIPT,$@)
+
+	
+.PHONY: _F_img_clean
+_F_img_clean:
+	if [ -f $(F_FILE_OS) ]; then \
+		rm $(F_FILE_OS); \
+	fi
+	if [ -f $(F_FILE_PAR_INFO) ]; then \
+		rm $(F_FILE_PAR_INFO); \
+	fi
+	if [ -f $(F_FILE_ALL_OS) ]; then \
+		rm $(F_FILE_ALL_OS); \
+	fi
+

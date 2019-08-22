@@ -1,0 +1,44 @@
+##################################################
+###choose toolchain
+###if need pass -mips1, export line4
+#export TOOLSGCC=STANDARD
+
+echo `pwd`
+
+
+if [ ! -d /opt ] ; then
+	sudo mkdir /opt; sudo chmod 755 /opt;
+fi
+
+if [ ! -d /opt/acrospeed/ ] ; then
+	if [ ! -d `pwd`/opt ]; then
+		tar xvfj svn.material/opt_acrospeed_mips_linux_uclibc_20120113.tar.bz2
+	fi
+
+        ln -s `pwd`/opt/acrospeed /opt/acrospeed;
+fi
+
+#export TOOLCHAIN_PATH=/opt/acrospeed/mips-linux-uclibc/bin
+export TOOLCHAIN_PATH=/opt/acrospeed/user/bin
+
+##################################################
+
+export KBUILD_CPPFLAGS="-I`pwd`/src/linux"
+export MIPSFLAGS="-I`pwd`/src/linux"
+export CFLAGS="-I`pwd`/src/linux"
+
+##################################################
+
+export PATH=${TOOLCHAIN_PATH}:$PATH
+
+export CROSS_COMPILE=mips-linux-uclibc-
+
+export MALLOC_CHECK_=0
+
+alias MGCC=${CROSS_COMPILE}gcc
+alias MLD=${CROSS_COMPILE}ld
+alias MNM=${CROSS_COMPILE}nm
+alias MDUMP=${CROSS_COMPILE}objdump
+alias MCOPY=${CROSS_COMPILE}objcopy
+
+
