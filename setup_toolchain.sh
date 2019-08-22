@@ -56,8 +56,8 @@ cd ..
 echo "----------------------------"
 echo " change ip218 setting "
 echo "----------------------------"
-cp -v ip218_patch/bash.uboot       ip218_release/env/
-cp -v ip218_patch/bash.linux       ip218_release/env/
+cp -v ip218_patch/bashrc.uboot     ip218_release/env/
+cp -v ip218_patch/bashrc.linux     ip218_release/env/
 cp -v ip218_patch/Makefile         ip218_release/svn.subMake/
 cp -v ip218_patch/Makefile.rootfs  ip218_release/svn.subMake/
 cp -v ip218_patch/config.mk        ip218_release/src/u-boot-2009.08
