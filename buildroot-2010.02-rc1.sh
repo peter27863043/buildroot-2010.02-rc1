@@ -14,6 +14,7 @@ apt-get install -y libncurses5-dev
 apt-get install -y patch
 apt-get install -y cpio
 apt-get install -y lzma
+apt-get install -y mtd-utils 
 
 wget http://ftp.gnu.org/gnu/texinfo/texinfo-4.13.tar.gz
 gzip -dc < texinfo-4.13.tar.gz | tar -xf -
