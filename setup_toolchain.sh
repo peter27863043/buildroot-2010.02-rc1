@@ -15,6 +15,10 @@ then
         tar -zxvf ../ip218_release/svn.material/lib/uclibc.tgz -C /home/ip218_release/svn.material/lib
 fi
 
+echo "------------------------"
+echo " strip libstdc++.so "
+echo "------------------------"
+output/staging/usr/bin/mips-linux-strip -g output/target/usr/lib/libstdc++.so.6.0.10
 
 echo "------------------------"
 echo " copy toolchain "
@@ -22,6 +26,7 @@ echo "------------------------"
 rm -rf ../ip218_release/opt/acrospeed/user/*
 cp -r output/staging/usr/* ../ip218_release/opt/acrospeed/user/
 cp -r output/host/usr/bin/ ../ip218_release/opt/acrospeed/user/bin/
+
 echo "------------------------"
 echo " clean lib & copy lib "
 echo "------------------------"
@@ -30,6 +35,7 @@ pwd
 rm svn.material/lib/lib/*   
 cp -r ../buildroot-2010.02-rc1/output/staging/lib/* svn.material/lib/lib/
 cp    ../buildroot-2010.02-rc1/output/target/lib/libgcc_s.so.1 svn.material/lib/lib/
+cp -r ../buildroot-2010.02-rc1/output/target/usr/lib/libstdc++.* svn.material/lib/lib/
 rm svn.material/lib/lib/liblz*
 rm svn.material/uclibc.tgz
 rm svn.material/lib/uclibc.tgz
