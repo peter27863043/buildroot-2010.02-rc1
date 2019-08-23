@@ -1,0 +1,98 @@
+--- uClibc-0.9.30.2-orig/libc/string/mips/memset.S	2019-07-23 09:01:40.817655080 +0000
++++ uClibc-0.9.30.2/libc/string/mips/memset.S	2019-07-23 09:58:47.853655080 +0000
+@@ -36,7 +36,6 @@
+ 
+ ENTRY (memset)
+ 	.set	noreorder
+-
+ 	slti	ta1, a2, 16		# Less than 16?
+ 	bne	ta1, zero, L(last16)
+ 	move	v0, a0			# Setup exit value before too late
+@@ -100,8 +99,9 @@
+ #endif
+ 
+ ENTRY (memset)
+-	.set	noreorder
+-
++	.set	noreorder		# -------------------------------
++					# a0:dst, a1:data(bit7~0), a2:len
++					# -------------------------------
+ 	slti	t1, a2, 8		# Less than 8?
+ 	bne	t1, zero, L(last8)
+ 	move	v0, a0			# Setup exit value before too late
+@@ -118,7 +118,9 @@
+ 	andi	t0, 0x3
+ 	beq	t0, zero, L(chkw)
+ 	subu	a2, t0
+-	SWHI	a1, 0(a0)		# Yes, handle first unaligned part
++	sb	a1, 0(a0)		# sb to solve lwl lwr swl swr problem
++	sb	a1, 1(a0)
++	nop
+ 	addu	a0, t0			# Now both a0 and a2 are updated
+ 
+ L(chkw):	
+--- uClibc-0.9.30.2-orig/libc/string/mips/memcpy.S	2019-08-13 09:34:08.117979792 +0000
++++ uClibc-0.9.30.2/libc/string/mips/memcpy.S	2019-08-13 09:52:37.749979792 +0000
+@@ -167,11 +167,13 @@
+ 	andi	t1, 0x3			# a0/a1 are aligned, but are we
+ 	beq	t1, zero, L(chk8w)	#  starting in the middle of a word?
+ 	subu	a2, t1
+-	LWHI	t0, 0(a1)		# Yes we are... take care of that
+-	addu	a1, t1
+-	SWHI	t0, 0(a0)
+-	addu	a0, t1
+-
++align4:	
++	lbu	t2, 0(a1)
++	subu	t1, 1
++	sb	t2, 0(a0)
++	addiu	a1, 1
++	bnez	t1, align4
++	addiu	a0, 1
+ L(chk8w):	
+ 	andi	t0, a2, 0x1f		# 32 or more bytes left?
+ 	beq	t0, a2, L(chk1w)
+@@ -225,29 +227,20 @@
+ 	jr	ra			# Bye, bye
+ 	nop
+ 
+-L(shift):	
+-	subu	a3, zero, a0		# Src and Dest unaligned 
+-	andi	a3, 0x3			#  (unoptimized case...)
+-	beq	a3, zero, L(shft1)
+-	subu	a2, a3			# a2 = bytes left
+-	LWHI	t0, 0(a1)		# Take care of first odd part
+-	LWLO	t0, 3(a1)
+-	addu	a1, a3
+-	SWHI	t0, 0(a0)
+-	addu	a0, a3
+-L(shft1):	
+-	andi	t0, a2, 0x3
+-	subu	a3, a2, t0
+-	addu	a3, a1
+-L(shfth):	
+-	LWHI	t1, 0(a1)		# Limp through, word by word
+-	LWLO	t1, 3(a1)
+-	addiu	a0, 4
+-	addiu	a1, 4
+-	bne	a1, a3, L(shfth)
+-	sw	t1, -4(a0)
+-	b	L(last8)		# Handle anything which may be left
+-	move	a2, t0
++L(shift):
++	beqz    a2, L(done)
++	nop
++
++L(copy_bytes):
++	lbu	t0,  0(a1)
++	subu	a2,  a2, 1
++	sb	t0,  0(a0)
++	addiu	a1,  a1, 1
++	bnez	a2,  L(copy_bytes)
++	addiu	a0,  a0, 1
++L(done):
++	jr  ra
++	nop
+ 
+ 	.set	reorder
+ END (memcpy)
