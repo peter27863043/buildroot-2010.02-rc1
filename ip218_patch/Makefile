@@ -59,7 +59,7 @@ F_INLINE_UPDATE_FILE_LIST	=initramfs/etc/init.d/rcS ap/s_db/src/extension_for_de
 ifeq (,)
 
 #kernel load address, must same with setting in \linux\arch\mips\icplus\Platform
-K_LOAD_ADDRESS		?=80370000
+K_LOAD_ADDRESS		?=80380000
 
 ## size/offset of flash segments, in unit of byte and in hex format without leading "0x"
 

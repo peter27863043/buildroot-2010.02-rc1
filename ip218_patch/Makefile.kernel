@@ -1,0 +1,278 @@
+#
+# Copyright (C) 2012 IC Plus Corp.
+#
+# This program is the confidential and proprietary property of IC Plus 
+# Corp. and the possession or use of this file requires a witten license 
+# from IC Plus Corp.
+#
+# Modified Date : 105.01.28 -001
+#
+########################################################################################
+## user default setting
+########################################################################################
+
+#kernel load address, must same with setting in \linux\arch\mips\icplus\Platform
+K_LOAD_ADDRESS		?=80380000
+
+# make with verbose info, 1=enable, 0=disable
+K_VERBOSE			?=0
+K_MENUC_CFG_FILE_ROOT_LOCATION	?=gen.modify
+
+########################################################################################
+## project setting
+########################################################################################
+
+K_ARCH_NAME			:=mips
+K_BOARD_NAME			:=helios
+
+########################################################################################
+## default setting
+########################################################################################
+
+SUBMAKE_EXT	+= K
+
+K_SET_ENV	=. $(ENV_DIR)/bashrc.linux
+K_ENV_EXEC	= $(K_SET_ENV); bash -c "$(1)"
+
+K_VERBOSE	:=$(if $(subst 0,,$(K_VERBOSE)),1,0)
+
+K_MENUC_CFG_FILE_LOCATION	:=$(K_MENUC_CFG_FILE_ROOT_LOCATION)/src/linux/arch/$(K_ARCH_NAME)/configs
+
+ifeq (,)
+K_BUILD_MAKE	=make -C $(K_SRC_DIR) O=$(K_BUILD_DIR) INSTALL_MOD_PATH=$(K_MODULE_DIR) V=$(K_VERBOSE)
+else
+K_BUILD_MAKE	=make -C $(K_SRC_DIR) O=$(K_BUILD_DIR) INSTALL_MOD_PATH=$(K_MODULE_DIR)
+endif
+
+K_SRC_DIR	?=$(PROJ_ROOT)/src/linux
+K_BUILD_DIR	?=$(PROJ_ROOT)/build/linux
+K_MODULE_DIR	?=$(PROJ_ROOT)/build/generated_modules
+K_MODULE_DIR_BACKUP	?=$(PROJ_ROOT)/build/generated_modules.long_stay
+
+K_UIMAGE_FILE	=$(K_BUILD_DIR)/uImage.vmlinuz
+
+K_UPLOAD_FILE	=$(UPLOAD_DIR)/uImage.vmlinuz
+
+########################################################################################
+
+.PHONY: K_help
+K_help:
+
+STEPS_K_DEFC	:= premake
+STEPS_K_MENUC	:= premake
+STEPS_K_INCR	:= premake
+
+STEPS_K_DEFC	+= _K_reset _K_defconfig               _K_build _K_uimage _K_upload
+STEPS_K_MENUC	+= _K_reset _K_defconfig _K_menuconfig _K_build _K_uimage _K_upload
+STEPS_K_INCR	+=                                     _K_build _K_uimage _K_upload
+STEPS_K_DUMP	:= _K_dump
+
+########################################################################################
+
+K_help:
+	@echo "\t########## Kernel ##########"
+	@$(call WORK_FN_HELP_1,"K_clean"    ,"clean kernel source and build")
+	@$(call WORK_FN_HELP_1,"K_clean_build","only remove $(K_BUILD_DIR)")
+	@$(call WORK_FN_HELP_1,"K_defc"     ,"run all steps with default configuration")
+	@$(call WORK_FN_HELP_1,"K_menuc"    ,"run all steps with menu configuration")
+	@$(call WORK_FN_HELP_1,"K_incr"     ,"run this if just incremental build is required")
+	@$(call WORK_FN_HELP_1,"K_dump"     ,"Objdump kernel using the following var to control")
+		@$(call WORK_FN_HELP_SUB1, "K_DUMP_FLAG : $(K_DUMP_FLAG)")
+		@$(call WORK_FN_HELP_SUB1, "K_DUMP_IFILE : $(K_DUMP_IFILE)")
+	
+.PHONY: K_defc
+K_defc:
+	make $(STEPS_K_DEFC) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: K_menuc
+K_menuc:
+	#make $(STEPS_K_MENUC) 2>&1 | tee $(LOG)
+	echo > $(LOG)
+ifeq (,)
+	@$(foreach T,$(STEPS_K_MENUC),\
+		$(if $(subst _K_menuconfig,,$(T)), \
+			make $(T) 2>&1 | tee -a $(LOG), \
+			echo "####" >> $(LOG); echo "#### menuconfig" >> $(LOG); echo "####" >> $(LOG); make $(T));)
+else
+	@$(foreach T,$(STEPS_K_MENUC),\
+		$(if $(subst _K_menuconfig,,$(T)), \
+			make $(T) 2>&1 | tee -a $(LOG), \
+			make $(T));)
+endif
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: K_incr
+K_incr:
+	make $(STEPS_K_INCR) 2>&1 | tee $(LOG)
+	$(WORK_FN_LOG_LINK)
+
+.PHONY: K_dump
+K_dump:
+	make $(STEPS_K_DUMP) 2>&1 | tee $(LOG)
+	
+#######################################################################
+## reset the content
+#######################################################################
+
+.PHONY: _K_reset
+_K_reset:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	test -d $(K_BUILD_DIR) || mkdir -p $(K_BUILD_DIR)
+	$(call K_ENV_EXEC, $(K_BUILD_MAKE) mrproper)
+
+#######################################################################
+## do default configuration
+#######################################################################
+
+.PHONY: _K_defconfig
+_K_defconfig:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	$(call K_ENV_EXEC, $(K_BUILD_MAKE) $(K_BOARD_NAME)_defconfig)
+
+#######################################################################
+## do menuconfig
+#######################################################################
+
+.PHONY: _K_menuconfig
+_K_menuconfig:
+	@echo "####"
+	@echo "#### $@, output file: $(K_MENUC_CFG_FILE_LOCATION)/$(K_BOARD_NAME)_defconfig"
+	@echo "####"
+	$(call K_ENV_EXEC, $(K_BUILD_MAKE) menuconfig)
+	# copy .config to configs/
+	if [ ! -d $(K_SRC_DIR)/arch/$(K_ARCH_NAME)/configs/ ]; then \
+		mkdir -p $(K_SRC_DIR)/arch/$(K_ARCH_NAME)/configs/; \
+	fi
+	cp $(K_BUILD_DIR)/.config $(K_BUILD_DIR)/$(K_BOARD_NAME)_defconfig
+	mv $(K_BUILD_DIR)/$(K_BOARD_NAME)_defconfig $(K_SRC_DIR)/arch/$(K_ARCH_NAME)/configs
+	# copy .config to gen.modify/
+	if [ ! -d $(K_MENUC_CFG_FILE_LOCATION) ]; then \
+		mkdir -p $(K_MENUC_CFG_FILE_LOCATION) ]; \
+	fi
+	if [ -f $(K_MENUC_CFG_FILE_LOCATION)/$(K_BOARD_NAME)_defconfig ]; then \
+		mv $(K_MENUC_CFG_FILE_LOCATION)/$(K_BOARD_NAME)_defconfig $(K_MENUC_CFG_FILE_LOCATION)/$(K_BOARD_NAME)_defconfig.$(WORK_TIME_TAG); \
+	fi
+	cp $(K_SRC_DIR)/arch/$(K_ARCH_NAME)/configs/$(K_BOARD_NAME)_defconfig $(K_MENUC_CFG_FILE_LOCATION)
+
+#######################################################################
+## build kernel image
+#######################################################################
+
+.PHONY: _K_build
+_K_build:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	test -d $(K_BUILD_DIR) || mkdir -p $(K_BUILD_DIR)
+	$(call K_ENV_EXEC, ($(K_BUILD_MAKE) && $(K_BUILD_MAKE) modules_install || make _K_build_fail) )
+	test -d $(K_MODULE_DIR_BACKUP) || mkdir -p $(K_MODULE_DIR_BACKUP) 
+	cp -r $(K_MODULE_DIR)/* $(K_MODULE_DIR_BACKUP)/ 
+	cp -r $(K_MODULE_DIR_BACKUP)/* $(K_MODULE_DIR)/ 
+
+.PHONY: _K_build_fail
+_K_build_fail:
+	$(foreach F,$(K_BUILD_DIR)/vmlinux $(K_BUILD_DIR)/arch/$(K_ARCH_NAME)/boot/vmlinux.bin, \
+		if [ -f $(F) ]; then \
+			rm -f $(F); \
+		fi; )
+	make _K_uimage_clean
+	make _K_upload_clean
+
+#######################################################################
+## generate uImage after kernel is built
+#######################################################################
+
+.PHONY: _K_uimage_clean
+_K_uimage_clean:
+	if [ -f $(K_UIMAGE_FILE) ]; then \
+		rm -f $(K_UIMAGE_FILE); \
+	fi
+
+.PHONY: _K_uimage
+_K_uimage:
+	make $(K_UIMAGE_FILE)
+
+$(K_UIMAGE_FILE): $(K_BUILD_DIR)/arch/$(K_ARCH_NAME)/boot/vmlinux.bin
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	make _K_uimage_clean
+	gzip -c $^ > /tmp/tmp.vmlinux.bin
+	$(U_BUILD_DIR)/tools/mkimage -A $(K_ARCH_NAME) -O linux -T kernel -C gzip \
+		-a $(K_LOAD_ADDRESS) -e `sed -n -e "s/ T kernel_entry//p" < $(K_BUILD_DIR)/System.map` \
+		-n "Linux for IP218" -d /tmp/tmp.vmlinux.bin $@
+	rm -f /tmp/tmp.vmlinux.bin
+
+
+	
+#######################################################################
+## copy the output files to upload directory for TFTP 
+#######################################################################
+
+.PHONY: _K_upload_clean
+_K_upload_clean:
+	if [ -f $(K_UPLOAD_FILE) ]; then \
+		rm -f $(K_UPLOAD_FILE); \
+	fi
+
+.PHONY: _K_upload 
+_K_upload:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	#cp $(K_UIMAGE_FILE) $(K_UPLOAD_FILE)
+	make _K_upload_clean
+	$(CHK_IMAGE_SZ) $(K_UIMAGE_FILE) $(F_BURN_K_SIZE) $(F_IMAGE_MIN_SIZE) $(F_CHK_SIZE)
+	if [ -f $(F_CHK_SIZE) ]; then \
+		rm $(F_CHK_SIZE); \
+		echo "Pass Checking"; \
+		cp $(K_UIMAGE_FILE) $(K_UPLOAD_FILE); \
+	fi
+
+#######################################################################
+## Clean up the build directory and all log.*
+#######################################################################
+
+.PHONY: K_clean
+K_clean:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	rm -f log.*.K_*
+	rm -f log.K_*
+	make preclean
+	find build/linux -name "*.o" | xargs rm -rf
+	find src/linux -name "*.o" | xargs rm -rf
+
+.PHONY: K_clean_build
+K_clean_build:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	make preclean
+	find build/linux -name "*.o" | xargs rm -rf
+	find src/linux -name "*.o" | xargs rm -rf
+
+#######################################################################
+## do something more after kernel is built
+#######################################################################
+
+#CROSS_COMPILE	=mips-linux-gnu-
+K_DUMP_FLAG	=-g -S -a -D -h -l -t
+K_DUMP_IFILE	?=vmlinux
+K_DUMP_OFILE	?=K_dump_$(notdir $(K_DUMP_IFILE)).text
+
+.PHONY: _K_dump
+_K_dump:
+	@echo "####"
+	@echo "#### $@" 
+	@echo "####"
+	$(call K_ENV_EXEC, \
+		${CROSS_COMPILE}objdump $(K_DUMP_FLAG) $(K_BUILD_DIR)/$(K_DUMP_IFILE) > $(K_BUILD_DIR)/$(K_DUMP_OFILE) \
+	)
+

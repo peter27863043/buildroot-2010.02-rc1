@@ -1,0 +1,7 @@
+#
+# IC Plus Helios
+#
+platform-$(CONFIG_ICPLUS)	+= icplus/
+cflags-$(CONFIG_ICPLUS)		+= -I$(srctree)/arch/mips/include/asm/mach-helios
+load-$(CONFIG_ICPLUS)		+= 0xffffffff80380000
+all-$(CONFIG_ICPLUS)		:= vmlinux.bin
